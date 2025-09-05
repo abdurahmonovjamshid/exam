@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ exam.title }} Result</title>
+  <style>
+    body { font-family: sans-serif; margin: 40px; }
+    .correct { color: green; }
+    .wrong { color: red; }
+  </style>
+</head>
+<body>
+  <h1>{{ exam.title }} — Result</h1>
+  <p><b>{{ candidate.full_name }}</b></p>
+  <p>Score: {{ score }} / {{ total }}</p>
+  <p>Submitted at: {{ attempt.submitted_at }}</p>
+
+  <h3>Your answers</h3>
+  <ul>
+    {% for a in answers %}
+      <li>
+        <strong>{{ a.question.text }}</strong><br>
+        {% if a.choice %}
+          Answer: {{ a.choice.text }}
+        {% else %}
+          Answer: {{ a.text_answer }}
+        {% endif %}
+        {% if a.is_correct %} <span class="correct">✅ Correct</span>
+        {% else %} <span class="wrong">❌ Wrong</span>
+        {% endif %}
+      </li>
+    {% endfor %}
+  </ul>
+</body>
+</html>

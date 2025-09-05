@@ -1,0 +1,179 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{{ exam.title }} — Secure Exam</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body { font-family: system-ui, Arial, sans-serif; margin: 0; }
+    .wrap { max-width: 900px; margin: 0 auto; padding: 16px; display:none; }
+    .topbar { position: sticky; top: 0; background: #f8f8f8; padding: 12px 16px; border-bottom: 1px solid #e5e5e5; display: flex; justify-content: space-between; align-items: center; }
+    .question { padding: 14px 0; border-bottom: 1px dashed #ddd; }
+    .choices { margin-top: 8px; }
+    .choices label { display: block; margin: 6px 0; cursor: pointer; }
+    .submit-row { padding: 18px 0; text-align: right; }
+    * { -webkit-user-select: none; user-select: none; }
+    input, textarea { -webkit-user-select: text; user-select: text; }
+    #startScreen { display:flex; align-items:center; justify-content:center; height:100vh; }
+    #startBtn { padding:14px 28px; font-size:18px; font-weight:bold; }
+  </style>
+</head>
+
+<body oncopy="return false" onpaste="return false" oncut="return false" oncontextmenu="return false" ondragstart="return false">
+
+<div id="startScreen">
+  <button id="startBtn">Start Exam</button>
+</div>
+
+<div class="wrap" id="examContent">
+  <div class="topbar">
+    <div><strong>{{ exam.title }}</strong></div>
+    <div>Time left: <span id="timer">--:--</span></div>
+  </div>
+
+  <form id="examForm" method="post" action="{% url 'exam_submit' token=attempt.token %}">
+    {% csrf_token %}
+    <input type="hidden" name="token" value="{{ attempt.token }}">
+    <input type="hidden" id="focusViolations" name="focus_violations" value="0">
+
+    {% for q in questions %}
+      <div class="question">
+        <div><strong>{{ forloop.counter }}.</strong> {{ q.text }}</div>
+
+        {% if q.qtype == 'MCQ' or q.qtype == 'TF' %}
+          <div class="choices">
+            {% for c in q.choices.all %}
+              <label>
+                <input type="radio" name="q-{{ q.id }}" value="{{ c.id }}" required>
+                {{ c.text }}
+              </label>
+            {% endfor %}
+          </div>
+        {% elif q.qtype == 'SHORT' %}
+          <div class="choices">
+            <input type="text" name="q-{{ q.id }}" autocomplete="off" style="width:100%;padding:8px" required />
+          </div>
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <div class="submit-row">
+      <button type="submit" id="submitBtn" style="padding:10px 16px; font-weight:600;">Submit</button>
+    </div>
+  </form>
+</div>
+
+<script>
+let secondsLeft = {{ attempt.seconds_left|default:0 }};
+let timerInterval;
+let focusViolations = 0;
+const maxViolations = {{ exam.max_focus_violations }};
+
+// Utility: show non-blocking warning overlay
+function showWarning(msg) {
+  let box = document.getElementById("warningBox");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "warningBox";
+    box.style.position = "fixed";
+    box.style.top = "0"; box.style.left = "0";
+    box.style.right = "0"; box.style.bottom = "0";
+    box.style.background = "rgba(0,0,0,0.6)";
+    box.style.color = "#fff";
+    box.style.display = "flex";
+    box.style.alignItems = "center";
+    box.style.justifyContent = "center";
+    box.style.fontSize = "20px";
+    box.style.zIndex = "9999";
+    document.body.appendChild(box);
+  }
+  box.innerHTML = `<div style="background:#c00;padding:20px;border-radius:8px;">${msg}</div>`;
+  box.style.display = "flex";
+  setTimeout(() => box.style.display = "none", 3000);
+}
+
+// Timer
+function renderTimer(s) {
+  const m = Math.floor(s / 60).toString().padStart(2,'0');
+  const sec = (s % 60).toString().padStart(2,'0');
+  document.getElementById("timer").textContent = `${m}:${sec}`;
+}
+function startTimer() {
+  renderTimer(secondsLeft);
+  timerInterval = setInterval(() => {
+    secondsLeft--;
+    if (secondsLeft <= 0) {
+      clearInterval(timerInterval);
+      document.getElementById("examForm").submit();
+    } else {
+      renderTimer(secondsLeft);
+    }
+  }, 1000);
+}
+
+// Violations
+function addViolation(reason) {
+  focusViolations++;
+  document.getElementById("focusViolations").value = focusViolations;
+  console.warn("Violation:", reason, focusViolations);
+  showWarning("Rule broken: " + reason);
+
+  if (focusViolations > maxViolations) {
+    showWarning("Too many violations. Submitting exam...");
+    setTimeout(() => {
+      document.getElementById("examForm").submit();
+    }, 800);
+  }
+}
+
+// Detect tab switch
+window.onblur = () => addViolation("Tab switch");
+
+// Warn before leaving
+window.onbeforeunload = function(e) {
+  e.preventDefault();
+  e.returnValue = "";
+};
+
+// Fullscreen helpers
+function enterFullscreen() {
+  let el = document.documentElement;
+  if (el.requestFullscreen) el.requestFullscreen();
+  else if (el.mozRequestFullScreen) el.mozRequestFullScreen();
+  else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen();
+  else if (el.msRequestFullscreen) el.msRequestFullscreen();
+}
+
+// Detect fullscreen exit (all browsers)
+["fullscreenchange","webkitfullscreenchange","mozfullscreenchange","MSFullscreenChange"]
+  .forEach(ev => document.addEventListener(ev, () => {
+    if (!document.fullscreenElement &&
+        !document.mozFullScreenElement &&
+        !document.webkitFullscreenElement &&
+        !document.msFullscreenElement) {
+      addViolation("Exited fullscreen");
+    }
+  }));
+
+// Prevent ESC key exiting exam quietly
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    addViolation("Pressed ESC (fullscreen exit)");
+  }
+});
+
+// Start exam on button click
+document.getElementById("startBtn").addEventListener("click", () => {
+  enterFullscreen();
+  document.getElementById("startScreen").style.display = "none";
+  document.getElementById("examContent").style.display = "block";
+  startTimer();
+});
+</script>
+
+
+
+</body>
+</html>
