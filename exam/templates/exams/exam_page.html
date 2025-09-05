@@ -68,31 +68,6 @@
 <script>
 let secondsLeft = {{ attempt.seconds_left|default:0 }};
 let timerInterval;
-let focusViolations = 0;
-const maxViolations = {{ exam.max_focus_violations }};
-
-// Utility: show non-blocking warning overlay
-function showWarning(msg) {
-  let box = document.getElementById("warningBox");
-  if (!box) {
-    box = document.createElement("div");
-    box.id = "warningBox";
-    box.style.position = "fixed";
-    box.style.top = "0"; box.style.left = "0";
-    box.style.right = "0"; box.style.bottom = "0";
-    box.style.background = "rgba(0,0,0,0.6)";
-    box.style.color = "#fff";
-    box.style.display = "flex";
-    box.style.alignItems = "center";
-    box.style.justifyContent = "center";
-    box.style.fontSize = "20px";
-    box.style.zIndex = "9999";
-    document.body.appendChild(box);
-  }
-  box.innerHTML = `<div style="background:#c00;padding:20px;border-radius:8px;">${msg}</div>`;
-  box.style.display = "flex";
-  setTimeout(() => box.style.display = "none", 3000);
-}
 
 // Timer
 function renderTimer(s) {
@@ -106,35 +81,47 @@ function startTimer() {
     secondsLeft--;
     if (secondsLeft <= 0) {
       clearInterval(timerInterval);
-      document.getElementById("examForm").submit();
+      forceSubmit("Time is up");
     } else {
       renderTimer(secondsLeft);
     }
   }, 1000);
 }
 
-// Violations
-function addViolation(reason) {
-  focusViolations++;
-  document.getElementById("focusViolations").value = focusViolations;
-  console.warn("Violation:", reason, focusViolations);
-  showWarning("Rule broken: " + reason);
-
-  if (focusViolations > maxViolations) {
-    showWarning("Too many violations. Submitting exam...");
-    setTimeout(() => {
-      document.getElementById("examForm").submit();
-    }, 800);
-  }
+// Force submit immediately
+function forceSubmit(reason) {
+  console.warn("Exam submitted:", reason);
+  document.getElementById("focusViolations").value = 999; // mark violation
+  clearInterval(timerInterval);
+  document.getElementById("examForm").submit();
 }
 
-// Detect tab switch
-window.onblur = () => addViolation("Tab switch");
+// Detect tab/app switch
+window.onblur = () => forceSubmit("Switched app/tab");
 
-// Warn before leaving
+// Detect fullscreen exit (all browsers)
+["fullscreenchange","webkitfullscreenchange","mozfullscreenchange","MSFullscreenChange"]
+  .forEach(ev => document.addEventListener(ev, () => {
+    if (!document.fullscreenElement &&
+        !document.mozFullScreenElement &&
+        !document.webkitFullscreenElement &&
+        !document.msFullscreenElement) {
+      forceSubmit("Exited fullscreen");
+    }
+  }));
+
+// Prevent ESC (on desktop, but just in case)
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    forceSubmit("Pressed ESC");
+  }
+});
+
+// Block leaving page
 window.onbeforeunload = function(e) {
   e.preventDefault();
   e.returnValue = "";
+  forceSubmit("Page unload/refresh");
 };
 
 // Fullscreen helpers
@@ -146,24 +133,6 @@ function enterFullscreen() {
   else if (el.msRequestFullscreen) el.msRequestFullscreen();
 }
 
-// Detect fullscreen exit (all browsers)
-["fullscreenchange","webkitfullscreenchange","mozfullscreenchange","MSFullscreenChange"]
-  .forEach(ev => document.addEventListener(ev, () => {
-    if (!document.fullscreenElement &&
-        !document.mozFullScreenElement &&
-        !document.webkitFullscreenElement &&
-        !document.msFullscreenElement) {
-      addViolation("Exited fullscreen");
-    }
-  }));
-
-// Prevent ESC key exiting exam quietly
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    addViolation("Pressed ESC (fullscreen exit)");
-  }
-});
-
 // Start exam on button click
 document.getElementById("startBtn").addEventListener("click", () => {
   enterFullscreen();
@@ -172,6 +141,7 @@ document.getElementById("startBtn").addEventListener("click", () => {
   startTimer();
 });
 </script>
+
 
 
 
