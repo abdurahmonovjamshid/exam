@@ -40,7 +40,16 @@
 
     {% for q in questions %}
       <div class="question">
-        <div><strong>{{ forloop.counter }}.</strong> {{ q.text }}</div>
+        <div><strong>{{ forloop.counter }}.</strong>
+
+          {% if q.image %}
+            <div style="margin:10px 0;">
+              <img src="{{ q.image.url }}" alt="Question image" style="max-width:100%; height:auto;" />
+            </div>
+          {% endif %}
+
+          {{ q.text }}
+        </div>
 
         {% if q.qtype == 'MCQ' or q.qtype == 'TF' %}
           <div class="choices">

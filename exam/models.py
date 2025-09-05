@@ -50,6 +50,8 @@ class Question(models.Model):
     # Optional ordering hint (we still shuffle per-attempt if enabled)
     order = models.PositiveIntegerField(default=0)
 
+    image = models.ImageField(upload_to="question_images/", null=True, blank=True)
+
     def __str__(self):
         return f"[{self.exam.title}] {self.text[:60]}"
 
