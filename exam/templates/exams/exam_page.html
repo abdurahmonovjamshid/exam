@@ -4,7 +4,7 @@
 <head>
   <meta charset="utf-8" />
   <title>{{ exam.title }} — Secure Exam</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 
   <style>
     body { font-family: system-ui, Arial, sans-serif; margin: 0; }
@@ -68,6 +68,33 @@
 <script>
 let secondsLeft = {{ attempt.seconds_left|default:0 }};
 let timerInterval;
+let focusViolations = 0;
+const maxViolations = {{ exam.max_focus_violations }};
+const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+// Utility: warning overlay (desktop only)
+function showWarning(msg) {
+  if (isMobile) return; // skip overlays on mobile
+  let box = document.getElementById("warningBox");
+  if (!box) {
+    box = document.createElement("div");
+    box.id = "warningBox";
+    box.style.position = "fixed";
+    box.style.top = "0"; box.style.left = "0";
+    box.style.right = "0"; box.style.bottom = "0";
+    box.style.background = "rgba(0,0,0,0.6)";
+    box.style.color = "#fff";
+    box.style.display = "flex";
+    box.style.alignItems = "center";
+    box.style.justifyContent = "center";
+    box.style.fontSize = "20px";
+    box.style.zIndex = "9999";
+    document.body.appendChild(box);
+  }
+  box.innerHTML = `<div style="background:#c00;padding:20px;border-radius:8px;">${msg}</div>`;
+  box.style.display = "flex";
+  setTimeout(() => box.style.display = "none", 3000);
+}
 
 // Timer
 function renderTimer(s) {
@@ -81,48 +108,52 @@ function startTimer() {
     secondsLeft--;
     if (secondsLeft <= 0) {
       clearInterval(timerInterval);
-      forceSubmit("Time is up");
+      document.getElementById("examForm").submit();
     } else {
       renderTimer(secondsLeft);
     }
   }, 1000);
 }
 
-// Force submit immediately
-function forceSubmit(reason) {
-  console.warn("Exam submitted:", reason);
-  document.getElementById("focusViolations").value = 999; // mark violation
-  clearInterval(timerInterval);
-  document.getElementById("examForm").submit();
+// Violations
+function addViolation(reason) {
+  focusViolations++;
+  document.getElementById("focusViolations").value = focusViolations;
+
+  if (isMobile) {
+    // On mobile: strict → submit immediately
+    alert("You left the exam. It will now be submitted.");
+    document.getElementById("examForm").submit();
+    return;
+  }
+
+  // Desktop: warnings
+  console.warn("Violation:", reason, focusViolations);
+  showWarning("Rule broken: " + reason);
+  if (focusViolations > maxViolations) {
+    showWarning("Too many violations. Submitting exam...");
+    setTimeout(() => document.getElementById("examForm").submit(), 800);
+  }
 }
 
-// Detect tab/app switch
-window.onblur = () => forceSubmit("Switched app/tab");
+// Detect leaving exam
+if (isMobile) {
+  // Mobile: visibilitychange is most reliable
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) addViolation("App/tab switched");
+  });
+} else {
+  // Desktop: blur detection
+  window.onblur = () => addViolation("Tab switch");
+}
 
-// Detect fullscreen exit (all browsers)
-["fullscreenchange","webkitfullscreenchange","mozfullscreenchange","MSFullscreenChange"]
-  .forEach(ev => document.addEventListener(ev, () => {
-    if (!document.fullscreenElement &&
-        !document.mozFullScreenElement &&
-        !document.webkitFullscreenElement &&
-        !document.msFullscreenElement) {
-      forceSubmit("Exited fullscreen");
-    }
-  }));
-
-// Prevent ESC (on desktop, but just in case)
-document.addEventListener("keydown", (e) => {
-  if (e.key === "Escape") {
-    forceSubmit("Pressed ESC");
-  }
-});
-
-// Block leaving page
-window.onbeforeunload = function(e) {
-  e.preventDefault();
-  e.returnValue = "";
-  forceSubmit("Page unload/refresh");
-};
+// Warn before leaving (desktop only)
+if (!isMobile) {
+  window.onbeforeunload = function(e) {
+    e.preventDefault();
+    e.returnValue = "";
+  };
+}
 
 // Fullscreen helpers
 function enterFullscreen() {
@@ -133,17 +164,45 @@ function enterFullscreen() {
   else if (el.msRequestFullscreen) el.msRequestFullscreen();
 }
 
-// Start exam on button click
+// Detect fullscreen exit
+["fullscreenchange","webkitfullscreenchange","mozfullscreenchange","MSFullscreenChange"]
+  .forEach(ev => document.addEventListener(ev, () => {
+    if (!document.fullscreenElement &&
+        !document.mozFullScreenElement &&
+        !document.webkitFullscreenElement &&
+        !document.msFullscreenElement) {
+      addViolation("Exited fullscreen");
+    }
+  }));
+
+// Prevent ESC quietly
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    addViolation("Pressed ESC (fullscreen exit)");
+  }
+});
+
+// Keep screen awake (mobile)
+let wakeLock = null;
+async function keepAwake() {
+  if ("wakeLock" in navigator) {
+    try {
+      wakeLock = await navigator.wakeLock.request("screen");
+    } catch (err) {
+      console.warn("WakeLock not available", err);
+    }
+  }
+}
+
+// Start exam
 document.getElementById("startBtn").addEventListener("click", () => {
   enterFullscreen();
+  keepAwake();
   document.getElementById("startScreen").style.display = "none";
   document.getElementById("examContent").style.display = "block";
   startTimer();
 });
 </script>
-
-
-
 
 </body>
 </html>
