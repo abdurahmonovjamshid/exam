@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Register for {{ exam.title }}</title>
+</head>
+<body>
+  <h1>Register for {{ exam.title }}</h1>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Register & Get Exam Link</button>
+  </form>
+</body>
+</html>

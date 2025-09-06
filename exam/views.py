@@ -2,8 +2,41 @@ import random
 from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponseForbidden
 from django.utils import timezone
-from .models import Attempt, Question, Choice, Answer
+from .models import Attempt, Candidate, Exam, Question, Choice, Answer
 
+from django.conf import settings
+from .forms import CandidateRegistrationForm
+
+def register_for_exam(request, exam_id):
+    exam = Exam.objects.get(pk=exam_id)
+
+    if request.method == "POST":
+        form = CandidateRegistrationForm(request.POST)
+        if form.is_valid():
+            candidate, _ = Candidate.objects.get_or_create(
+                email=form.cleaned_data.get("email"),
+                defaults=form.cleaned_data,
+            )
+
+            # Prevent duplicate attempts per exam
+            attempt, created = Attempt.objects.get_or_create(
+                candidate=candidate,
+                exam=exam
+            )
+
+            # Build link
+            site_url = getattr(settings, "SITE_URL", "http://127.0.0.1:8000")
+            link = attempt.get_exam_url(base_url=site_url)
+
+            return render(request, "exams/registration_success.html", {
+                "candidate": candidate,
+                "exam": exam,
+                "link": link,
+            })
+    else:
+        form = CandidateRegistrationForm()
+
+    return render(request, "exams/register.html", {"form": form, "exam": exam})
 
 def exam_view(request, token):
     attempt = get_object_or_404(Attempt, token=token)
