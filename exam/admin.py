@@ -33,8 +33,8 @@ class ExamAdmin(admin.ModelAdmin):
 
 @admin.register(Candidate)
 class CandidateAdmin(admin.ModelAdmin):
-    list_display = ("full_name", "email", "created_at")
-    search_fields = ("full_name", "email")
+    list_display = ("full_name", "phone", "region", "work_position", "hr_manager", "created_at")
+    search_fields = ("full_name", "region", "work_position")
 
 
 class AnswerInline(admin.TabularInline):

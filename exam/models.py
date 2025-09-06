@@ -4,16 +4,27 @@ from django.db import models
 from django.utils import timezone
 
 
+from django.db import models
+
 class Candidate(models.Model):
-    # Telegram-based or manual candidates
-    telegram_id = models.CharField(max_length=64, null=True, blank=True, unique=True)
     full_name = models.CharField(max_length=150)
-    email = models.EmailField(null=True, blank=True)
-    phone = models.CharField(max_length=50, null=True, blank=True)
+    phone = models.CharField(max_length=50)
+    region = models.CharField(max_length=100)
+    work_position = models.CharField(max_length=100)
+
+    HR_CHOICES = [
+        ("Gulnoza", "Gulnoza"),
+        ("Iroda", "Iroda"),
+        ("Abdurahmon", "Abdurahmon"),
+        ("Boshqa", "Boshqa"),  # means "Other"
+    ]
+    hr_manager = models.CharField(max_length=50, choices=HR_CHOICES)
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return self.full_name
+        return f"{self.full_name} ({self.phone})"
+
 
 
 class Exam(models.Model):
