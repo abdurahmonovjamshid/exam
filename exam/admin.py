@@ -16,10 +16,19 @@ class QuestionAdmin(admin.ModelAdmin):
     inlines = [ChoiceInline]
 
 
+from django.urls import reverse
+from django.utils.html import format_html
+
 @admin.register(Exam)
 class ExamAdmin(admin.ModelAdmin):
-    list_display = ("title", "duration_minutes", "shuffle_questions")
+    list_display = ("title", "duration_minutes", "shuffle_questions", "registration_link")
     search_fields = ("title",)
+
+    def registration_link(self, obj):
+        url = reverse("register_exam", args=[obj.id])
+        return format_html('<a href="{}" target="_blank">Open Link</a>', url)
+    registration_link.short_description = "Registration Link"
+
 
 
 @admin.register(Candidate)
