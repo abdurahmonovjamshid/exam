@@ -1,36 +1,117 @@
 {% load static %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="uz">
 <head>
   <meta charset="utf-8" />
   <title>{{ exam.title }} — Secure Exam</title>
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
 
   <style>
-    body { font-family: system-ui, Arial, sans-serif; margin: 0; }
-    .wrap { max-width: 900px; margin: 0 auto; padding: 16px; display:none; }
-    .topbar { position: sticky; top: 0; background: #f8f8f8; padding: 12px 16px; border-bottom: 1px solid #e5e5e5; display: flex; justify-content: space-between; align-items: center; }
-    .question { padding: 14px 0; border-bottom: 1px dashed #ddd; }
-    .choices { margin-top: 8px; }
-    .choices label { display: block; margin: 6px 0; cursor: pointer; }
-    .submit-row { padding: 18px 0; text-align: right; }
-    * { -webkit-user-select: none; user-select: none; }
-    input, textarea { -webkit-user-select: text; user-select: text; }
-    #startScreen { display:flex; align-items:center; justify-content:center; height:100vh; }
-    #startBtn { padding:14px 28px; font-size:18px; font-weight:bold; }
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      margin: 0;
+      background: #f5f5f5;
+    }
+    .wrap {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 16px;
+      display: none;
+    }
+    .topbar {
+      position: sticky;
+      top: 0;
+      background: #fff;
+      padding: 12px 16px;
+      border-bottom: 1px solid #e5e5e5;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 1rem;
+      z-index: 100;
+    }
+    .question {
+      background: #fff;
+      padding: 16px;
+      margin: 14px 0;
+      border-radius: 10px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+    }
+    .choices {
+      margin-top: 12px;
+    }
+    .choices label {
+      display: block;
+      margin: 6px 0;
+      cursor: pointer;
+    }
+    .submit-row {
+      padding: 18px 0;
+      text-align: right;
+    }
+    * {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    input, textarea {
+      -webkit-user-select: text;
+      user-select: text;
+    }
+
+    /* Start screen */
+    #startScreen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      height: 100vh;
+      padding: 20px;
+      background: #fff;
+    }
+    #startScreen p {
+      font-size: 1.1rem;
+      margin-bottom: 24px;
+      color: #333;
+      line-height: 1.5;
+    }
+    #startBtn {
+      padding: 14px 28px;
+      font-size: 18px;
+      font-weight: bold;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    #startBtn:hover {
+      background: #0056b3;
+    }
+
+    /* Responsive tweaks */
+    @media (max-width: 600px) {
+      .topbar { font-size: 0.9rem; padding: 10px; }
+      #startScreen p { font-size: 1rem; }
+      #startBtn { width: 100%; font-size: 1.1rem; }
+    }
   </style>
 </head>
 
 <body oncopy="return false" onpaste="return false" oncut="return false" oncontextmenu="return false" ondragstart="return false">
 
 <div id="startScreen">
-  <button id="startBtn">Start Exam</button>
+  <p><strong>⚠️ Diqqat!</strong><br>
+  Imtihon davomida <u>ekrandan chiqib ketmang</u>, boshqa ilova yoki oynaga o‘tib bo‘lmaydi.<br>
+  Aks holda, imtihon avtomatik tarzda yakunlanadi.</p>
+  <button id="startBtn">Imtihonni boshlash</button>
 </div>
 
 <div class="wrap" id="examContent">
   <div class="topbar">
     <div><strong>{{ exam.title }}</strong></div>
-    <div>Time left: <span id="timer">--:--</span></div>
+    <div>Qolgan vaqt: <span id="timer">--:--</span></div>
   </div>
 
   <form id="examForm" method="post" action="{% url 'exam_submit' token=attempt.token %}">
@@ -44,7 +125,7 @@
 
           {% if q.image %}
             <div style="margin:10px 0;">
-              <img src="{{ q.image.url }}" alt="Question image" style="max-width:100%; height:auto;" />
+              <img src="{{ q.image.url }}" alt="Question image" style="max-width:100%; height:auto; border-radius:6px;" />
             </div>
           {% endif %}
 
@@ -62,14 +143,14 @@
           </div>
         {% elif q.qtype == 'SHORT' %}
           <div class="choices">
-            <input type="text" name="q-{{ q.id }}" autocomplete="off" style="width:100%;padding:8px" required />
+            <input type="text" name="q-{{ q.id }}" autocomplete="off" style="width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;" required />
           </div>
         {% endif %}
       </div>
     {% endfor %}
 
     <div class="submit-row">
-      <button type="submit" id="submitBtn" style="padding:10px 16px; font-weight:600;">Submit</button>
+      <button type="submit" id="submitBtn" style="padding:12px 20px; font-weight:600; background:#28a745; color:#fff; border:none; border-radius:8px; cursor:pointer;">Yakunlash</button>
     </div>
   </form>
 </div>
@@ -81,9 +162,8 @@ let focusViolations = 0;
 const maxViolations = {{ exam.max_focus_violations }};
 const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-// Utility: warning overlay (desktop only)
 function showWarning(msg) {
-  if (isMobile) return; // skip overlays on mobile
+  if (isMobile) return;
   let box = document.getElementById("warningBox");
   if (!box) {
     box = document.createElement("div");
@@ -105,7 +185,6 @@ function showWarning(msg) {
   setTimeout(() => box.style.display = "none", 3000);
 }
 
-// Timer
 function renderTimer(s) {
   const m = Math.floor(s / 60).toString().padStart(2,'0');
   const sec = (s % 60).toString().padStart(2,'0');
@@ -124,39 +203,32 @@ function startTimer() {
   }, 1000);
 }
 
-// Violations
 function addViolation(reason) {
   focusViolations++;
   document.getElementById("focusViolations").value = focusViolations;
 
   if (isMobile) {
-    // On mobile: strict → submit immediately
-    alert("You left the exam. It will now be submitted.");
+    alert("Siz imtihondan chiqib ketdingiz. Imtihon avtomatik yakunlanadi.");
     document.getElementById("examForm").submit();
     return;
   }
 
-  // Desktop: warnings
   console.warn("Violation:", reason, focusViolations);
-  showWarning("Rule broken: " + reason);
+  showWarning("Qoidabuzarlik: " + reason);
   if (focusViolations > maxViolations) {
-    showWarning("Too many violations. Submitting exam...");
+    showWarning("Juda ko‘p qoidabuzarlik! Imtihon yakunlanmoqda...");
     setTimeout(() => document.getElementById("examForm").submit(), 800);
   }
 }
 
-// Detect leaving exam
 if (isMobile) {
-  // Mobile: visibilitychange is most reliable
   document.addEventListener("visibilitychange", () => {
-    if (document.hidden) addViolation("App/tab switched");
+    if (document.hidden) addViolation("Ilova/tab almashtirildi");
   });
 } else {
-  // Desktop: blur detection
-  window.onblur = () => addViolation("Tab switch");
+  window.onblur = () => addViolation("Tab almashtirildi");
 }
 
-// Warn before leaving (desktop only)
 if (!isMobile) {
   window.onbeforeunload = function(e) {
     e.preventDefault();
@@ -164,7 +236,6 @@ if (!isMobile) {
   };
 }
 
-// Fullscreen helpers
 function enterFullscreen() {
   let el = document.documentElement;
   if (el.requestFullscreen) el.requestFullscreen();
@@ -173,25 +244,22 @@ function enterFullscreen() {
   else if (el.msRequestFullscreen) el.msRequestFullscreen();
 }
 
-// Detect fullscreen exit
 ["fullscreenchange","webkitfullscreenchange","mozfullscreenchange","MSFullscreenChange"]
   .forEach(ev => document.addEventListener(ev, () => {
     if (!document.fullscreenElement &&
         !document.mozFullScreenElement &&
         !document.webkitFullscreenElement &&
         !document.msFullscreenElement) {
-      addViolation("Exited fullscreen");
+      addViolation("Fullscreen rejimidan chiqildi");
     }
   }));
 
-// Prevent ESC quietly
 document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
-    addViolation("Pressed ESC (fullscreen exit)");
+    addViolation("ESC tugmasi bosildi (fullscreen chiqish)");
   }
 });
 
-// Keep screen awake (mobile)
 let wakeLock = null;
 async function keepAwake() {
   if ("wakeLock" in navigator) {
@@ -203,7 +271,6 @@ async function keepAwake() {
   }
 }
 
-// Start exam
 document.getElementById("startBtn").addEventListener("click", () => {
   enterFullscreen();
   keepAwake();
