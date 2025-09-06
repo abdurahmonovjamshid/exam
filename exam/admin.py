@@ -2,6 +2,11 @@ from django.contrib import admin
 from .models import Exam, Question, Choice, Candidate, Attempt, Answer
 from django.utils.html import format_html
 from django.conf import settings
+from django.urls import reverse
+import openpyxl
+from openpyxl.styles import PatternFill
+from django.http import HttpResponse
+
 
 class ChoiceInline(admin.TabularInline):
     model = Choice
@@ -9,62 +14,38 @@ class ChoiceInline(admin.TabularInline):
 
 
 @admin.register(Question)
-class QuestionAdmin(admin.ModelAdmin):
+class SavolAdmin(admin.ModelAdmin):
     list_display = ("text", "exam", "qtype", "order")
     list_filter = ("exam", "qtype")
     search_fields = ("text",)
     inlines = [ChoiceInline]
 
 
-from django.urls import reverse
-from django.utils.html import format_html
-
 @admin.register(Exam)
-class ExamAdmin(admin.ModelAdmin):
+class ImtihonAdmin(admin.ModelAdmin):
     list_display = ("title", "duration_minutes", "shuffle_questions", "registration_link")
     search_fields = ("title",)
 
     def registration_link(self, obj):
         url = reverse("register_exam", args=[obj.id])
-        return format_html('<a href="{}" target="_blank">Open Link</a>', url)
-    registration_link.short_description = "Registration Link"
+        return format_html('<a href="{}" target="_blank">Ro‘yxatga olish havolasi</a>', url)
 
+    registration_link.short_description = "Ro‘yxatga olish havolasi"
 
 
 @admin.register(Candidate)
-class CandidateAdmin(admin.ModelAdmin):
+class NomzodAdmin(admin.ModelAdmin):
     list_display = ("full_name", "phone", "region", "work_position", "hr_manager", "created_at")
     search_fields = ("full_name", "region", "work_position")
 
 
-class AnswerInline(admin.TabularInline):
-    model = Answer
-    readonly_fields = ("question", "choice", "text_answer", "is_correct")
-    can_delete = False
-    extra = 0
-
-
-import openpyxl
-from openpyxl.styles import PatternFill
-from django.http import HttpResponse
-from django.utils.html import format_html
-from django.conf import settings
-
-import openpyxl
-from openpyxl.styles import PatternFill
-from django.http import HttpResponse
-from django.utils.html import format_html
-from django.conf import settings
-from django.contrib import admin
-
-
 def strip_tz(dt):
-    """Remove timezone from datetime for Excel compatibility."""
+    """Excel uchun timezone olib tashlash"""
     return dt.replace(tzinfo=None) if dt else None
 
 
 @admin.register(Attempt)
-class AttemptAdmin(admin.ModelAdmin):
+class UrinishAdmin(admin.ModelAdmin):
     list_display = (
         "candidate",
         "exam",
@@ -84,50 +65,50 @@ class AttemptAdmin(admin.ModelAdmin):
             return "-"
         base_url = getattr(settings, "SITE_URL", "http://127.0.0.1:8000")
         url = f"{base_url}/exam/{obj.token}/"
-        return format_html('<a href="{}" target="_blank">{}</a>', url, url)
+        return format_html('<a href="{}" target="_blank">Imtihon havolasi</a>', url)
 
-    exam_link.short_description = "Exam Link"
+    exam_link.short_description = "Imtihon havolasi"
 
     def export_attempts_excel(self, request, queryset):
         """
-        Export selected attempts to Excel:
-        - Candidate info
-        - Exam info
-        - Score
-        - Each question as a column
-        - Answer text, green if correct, red if wrong
+        Tanlangan urinishlarni Excelga eksport qilish
+        - Nomzod ma’lumoti
+        - Imtihon ma’lumoti
+        - Ball
+        - Har bir savol ustun ko‘rinishida
+        - Javob matni: to‘g‘ri yashil, noto‘g‘ri qizil
         """
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.title = "Attempts"
+        ws.title = "Urinishlar"
 
-        # Collect all unique questions across selected attempts
+        # Savollar to‘plami
         all_questions = []
         for attempt in queryset:
             for q in attempt.exam.questions.all():
                 if q not in all_questions:
                     all_questions.append(q)
 
-        # Header row
+        # Sarlavha qatori
         headers = [
-            "Candidate",
-            "Phone",
-            "Region",
-            "Work Position",
-            "HR Manager",
-            "Exam",
-            "Score",
-            "Started At",
-            "Submitted At",
+            "Nomzod",
+            "Telefon",
+            "Hudud",
+            "Ish o‘rni",
+            "HR menejer",
+            "Imtihon",
+            "Ball",
+            "Boshlangan vaqt",
+            "Yakunlangan vaqt",
         ]
-        headers += [q.text[:50] for q in all_questions]  # shorten question text
+        headers += [q.text[:50] for q in all_questions]  # savol matnini qisqartirish
         ws.append(headers)
 
-        # Colors
+        # Ranglar
         green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
         red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
 
-        # Data rows
+        # Ma’lumotlar qatori
         for attempt in queryset:
             row = [
                 attempt.candidate.full_name,
@@ -141,7 +122,6 @@ class AttemptAdmin(admin.ModelAdmin):
                 strip_tz(attempt.submitted_at),
             ]
 
-            # Build answers map {question_id: Answer}
             answers_map = {a.question_id: a for a in attempt.answers.all()}
 
             for q in all_questions:
@@ -157,7 +137,7 @@ class AttemptAdmin(admin.ModelAdmin):
 
             ws.append(row)
 
-            # Apply colors after row is appended
+            # Rang berish
             excel_row = ws.max_row
             for idx, q in enumerate(all_questions, start=len(headers) - len(all_questions) + 1):
                 ans = answers_map.get(q.id)
@@ -168,29 +148,27 @@ class AttemptAdmin(admin.ModelAdmin):
                     else:
                         cell.fill = red_fill
 
-        # Format datetime columns nicely
-        for col in ("H", "I"):  # "Started At" (H), "Submitted At" (I)
+        # Sana va vaqt formatlash
+        for col in ("H", "I"):  # Boshlangan va Yakunlangan
             for cell in ws[col]:
-                if cell.row == 1:  # skip header
+                if cell.row == 1:
                     continue
                 if cell.value:
                     cell.number_format = "DD.MM.YYYY HH:MM"
 
-        # Response
+        # Javob
         response = HttpResponse(
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
-        response["Content-Disposition"] = 'attachment; filename="attempts.xlsx"'
+        response["Content-Disposition"] = 'attachment; filename="urinishlar.xlsx"'
         wb.save(response)
         return response
 
-    export_attempts_excel.short_description = "Export selected attempts to Excel"
-
-
+    export_attempts_excel.short_description = "Tanlanganlarni Excelga yuklash"
 
 
 @admin.register(Answer)
-class AnswerAdmin(admin.ModelAdmin):
+class JavobAdmin(admin.ModelAdmin):
     list_display = ("attempt", "question", "choice", "text_answer", "is_correct")
     list_filter = ("is_correct", "question__exam")
     search_fields = ("attempt__candidate__full_name", "question__text")
