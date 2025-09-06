@@ -1,12 +1,71 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Registration Successful</title>
+  <meta charset="utf-8">
+  <title>Register for {{ exam.title }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- important for phones -->
+
+  <style>
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+    }
+    .container {
+      max-width: 480px; /* fits well on phones */
+      margin: 40px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    form p {
+      margin-bottom: 14px;
+    }
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
+    }
+    input {
+      width: 100%;
+      padding: 10px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      background: #007bff;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
 </head>
 <body>
-  <h1>Welcome, {{ candidate.full_name }}!</h1>
-  <p>You are registered for <b>{{ exam.title }}</b>.</p>
-  <p>Your unique exam link:</p>
-  <p><a href="{{ link }}">{{ link }}</a></p>
+  <div class="container">
+    <h1>Register for {{ exam.title }}</h1>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Register & Get Exam Link</button>
+    </form>
+  </div>
 </body>
 </html>
