@@ -7,6 +7,8 @@ from .models import Attempt, Candidate, Exam, Question, Choice, Answer
 from django.conf import settings
 from .forms import CandidateRegistrationForm
 
+from django.shortcuts import redirect
+
 def register_for_exam(request, exam_id):
     exam = Exam.objects.get(pk=exam_id)
 
@@ -14,7 +16,7 @@ def register_for_exam(request, exam_id):
         form = CandidateRegistrationForm(request.POST)
         if form.is_valid():
             candidate, _ = Candidate.objects.get_or_create(
-                email=form.cleaned_data.get("email"),
+                phone=form.cleaned_data.get("phone"),   # phone instead of email
                 defaults=form.cleaned_data,
             )
 
@@ -24,19 +26,16 @@ def register_for_exam(request, exam_id):
                 exam=exam
             )
 
-            # Build link
-            site_url = getattr(settings, "SITE_URL", "http://127.0.0.1:8000")
-            link = attempt.get_exam_url(base_url=site_url)
+            # Redirect directly to exam page
+            return redirect("exam_view", token=attempt.token)
+            # assumes your URL pattern looks like: path("exam/<str:token>/", views.exam_take, name="exam_take")
 
-            return render(request, "exams/registration_success.html", {
-                "candidate": candidate,
-                "exam": exam,
-                "link": link,
-            })
     else:
         form = CandidateRegistrationForm()
 
     return render(request, "exams/register.html", {"form": form, "exam": exam})
+
+
 
 def exam_view(request, token):
     attempt = get_object_or_404(Attempt, token=token)
