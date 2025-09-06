@@ -50,6 +50,19 @@ from django.http import HttpResponse
 from django.utils.html import format_html
 from django.conf import settings
 
+import openpyxl
+from openpyxl.styles import PatternFill
+from django.http import HttpResponse
+from django.utils.html import format_html
+from django.conf import settings
+from django.contrib import admin
+
+
+def strip_tz(dt):
+    """Remove timezone from datetime for Excel compatibility."""
+    return dt.replace(tzinfo=None) if dt else None
+
+
 @admin.register(Attempt)
 class AttemptAdmin(admin.ModelAdmin):
     list_display = (
@@ -82,7 +95,7 @@ class AttemptAdmin(admin.ModelAdmin):
         - Exam info
         - Score
         - Each question as a column
-        - Answer text, colored green if correct, red if wrong
+        - Answer text, green if correct, red if wrong
         """
         wb = openpyxl.Workbook()
         ws = wb.active
@@ -96,8 +109,17 @@ class AttemptAdmin(admin.ModelAdmin):
                     all_questions.append(q)
 
         # Header row
-        headers = ["Candidate", "Phone", "Region", "Work Position", "HR Manager",
-                   "Exam", "Score", "Started At", "Submitted At"]
+        headers = [
+            "Candidate",
+            "Phone",
+            "Region",
+            "Work Position",
+            "HR Manager",
+            "Exam",
+            "Score",
+            "Started At",
+            "Submitted At",
+        ]
         headers += [q.text[:50] for q in all_questions]  # shorten question text
         ws.append(headers)
 
@@ -115,8 +137,8 @@ class AttemptAdmin(admin.ModelAdmin):
                 attempt.candidate.hr_manager,
                 attempt.exam.title,
                 attempt.score,
-                attempt.started_at,
-                attempt.submitted_at,
+                strip_tz(attempt.started_at),
+                strip_tz(attempt.submitted_at),
             ]
 
             # Build answers map {question_id: Answer}
@@ -131,7 +153,6 @@ class AttemptAdmin(admin.ModelAdmin):
                         cell_value = ans.text_answer
                 else:
                     cell_value = ""
-
                 row.append(cell_value)
 
             ws.append(row)
@@ -147,13 +168,24 @@ class AttemptAdmin(admin.ModelAdmin):
                     else:
                         cell.fill = red_fill
 
+        # Format datetime columns nicely
+        for col in ("H", "I"):  # "Started At" (H), "Submitted At" (I)
+            for cell in ws[col]:
+                if cell.row == 1:  # skip header
+                    continue
+                if cell.value:
+                    cell.number_format = "DD.MM.YYYY HH:MM"
+
         # Response
-        response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
         response["Content-Disposition"] = 'attachment; filename="attempts.xlsx"'
         wb.save(response)
         return response
 
     export_attempts_excel.short_description = "Export selected attempts to Excel"
+
 
 
 
