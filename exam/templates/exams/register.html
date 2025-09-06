@@ -1,14 +1,77 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="utf-8">
   <title>Register for {{ exam.title }}</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"> <!-- key for phones -->
+
+  <style>
+    body {
+      font-family: system-ui, Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f5f5f5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh; /* full screen center */
+    }
+    .container {
+      width: 100%;
+      max-width: 420px;
+      padding: 24px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      font-size: 1.6rem; /* larger */
+      margin-bottom: 20px;
+      text-align: center;
+      color: #222;
+    }
+    form p {
+      margin-bottom: 16px;
+    }
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
+      font-size: 1rem;
+    }
+    input {
+      width: 100%;
+      padding: 12px;
+      font-size: 1rem;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      font-size: 1.1rem;
+      font-weight: 600;
+      background: #007bff;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      margin-top: 12px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+  </style>
 </head>
 <body>
-  <h1>Register for {{ exam.title }}</h1>
-  <form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Register & Get Exam Link</button>
-  </form>
+  <div class="container">
+    <h1>Register for {{ exam.title }}</h1>
+    <form method="post">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Register & Get Exam Link</button>
+    </form>
+  </div>
 </body>
 </html>
