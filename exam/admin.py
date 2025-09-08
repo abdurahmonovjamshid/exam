@@ -82,7 +82,7 @@ class UrinishAdmin(admin.ModelAdmin):
         ws = wb.active
         ws.title = "Urinishlar"
 
-        # Savollar to‘plami
+        # Savollar to‘plami (universal tartib)
         all_questions = []
         for attempt in queryset:
             for q in attempt.exam.questions.all():
@@ -139,9 +139,10 @@ class UrinishAdmin(admin.ModelAdmin):
 
             # Rang berish
             excel_row = ws.max_row
-            for idx, q in enumerate(all_questions, start=len(headers) - len(all_questions) + 1):
+            first_question_col = len(headers) - len(all_questions) + 1
+            for col_offset, q in enumerate(all_questions):
                 ans = answers_map.get(q.id)
-                cell = ws.cell(row=excel_row, column=idx + 1)
+                cell = ws.cell(row=excel_row, column=first_question_col + col_offset)
                 if ans:
                     if ans.is_correct:
                         cell.fill = green_fill
@@ -165,6 +166,7 @@ class UrinishAdmin(admin.ModelAdmin):
         return response
 
     export_attempts_excel.short_description = "Tanlanganlarni Excelga yuklash"
+
 
 
 @admin.register(Answer)
