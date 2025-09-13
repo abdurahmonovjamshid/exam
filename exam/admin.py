@@ -43,22 +43,44 @@ def strip_tz(dt):
     """Excel uchun timezone olib tashlash"""
     return dt.replace(tzinfo=None) if dt else None
 
-
 @admin.register(Attempt)
 class UrinishAdmin(admin.ModelAdmin):
     list_display = (
         "candidate",
+        "phone",
+        "region",
+        "work_position",
+        "hr_manager",
         "exam",
         "score",
         "started_at",
         "submitted_at",
         "exam_link",
     )
-    list_filter = ("exam", "submitted_at")
-    search_fields = ("candidate__full_name", "exam__title", "token")
+    list_filter = ("exam", "submitted_at", "candidate__region", "candidate__hr_manager")
+    search_fields = (
+        "candidate__full_name",
+        "candidate__phone",
+        "candidate__region",
+        "candidate__work_position",
+        "exam__title",
+        "token",
+    )
     readonly_fields = ("token", "exam_link", "started_at", "submitted_at")
 
     actions = ["export_attempts_excel"]
+
+    def phone(self, obj):
+        return obj.candidate.phone
+
+    def region(self, obj):
+        return obj.candidate.region
+
+    def work_position(self, obj):
+        return obj.candidate.work_position
+
+    def hr_manager(self, obj):
+        return obj.candidate.hr_manager
 
     def exam_link(self, obj):
         if not obj.token:
@@ -94,7 +116,7 @@ class UrinishAdmin(admin.ModelAdmin):
             "Nomzod",
             "Telefon",
             "Hudud",
-            "Ish o‘rni",
+            "Lavozim",
             "HR menejer",
             "Imtihon",
             "Ball",
@@ -166,7 +188,6 @@ class UrinishAdmin(admin.ModelAdmin):
         return response
 
     export_attempts_excel.short_description = "Tanlanganlarni Excelga yuklash"
-
 
 
 @admin.register(Answer)
