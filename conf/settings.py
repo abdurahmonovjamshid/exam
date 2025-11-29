@@ -12,6 +12,15 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 
+from environs import Env
+
+env = Env()
+env.read_env()
+
+TELEGRAM_BOT_TOKEN = env.str('TELEGRAM_BOT_TOKEN')
+
+HOST = env.str('HOST')
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -37,7 +46,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'exam'
+    'exam',
+    'bot'
 ]
 
 MIDDLEWARE = [
