@@ -238,18 +238,21 @@ def parse_date(date_text):
 
 def step_birth_date(message, app_id):
     if message.text == "⬅️ Ortga":
-        return send_job_categories(message)  # go back
+        return send_main_menu(message)  # FIX → goes to main menu
+
     app = JobApplication.objects.get(id=app_id)
 
-    try:
-        app.birth_date = parse_date(message.text)
-        app.save()
-    except:
+    date_val = parse_date(message.text)
+    if not date_val:
         bot.send_message(message.chat.id, "Noto‘g‘ri format!")
         return bot.register_next_step_handler(message, step_birth_date, app_id)
 
+    app.birth_date = date_val
+    app.save()
+
     bot.send_message(message.chat.id, "Viloyat:", reply_markup=back_button())
     bot.register_next_step_handler(message, step_region, app_id)
+
 
 
 def step_region(message, app_id):
