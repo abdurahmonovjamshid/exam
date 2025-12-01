@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 import telebot
 from telebot import TeleBot, types
 from telebot.types import ReplyKeyboardRemove
+from datetime import datetime
 
 from conf.settings import HOST, TELEGRAM_BOT_TOKEN
 
@@ -225,11 +226,22 @@ def start_application(call):
 # ================================
 #  Step — birth date
 # ================================
+
+def parse_date(date_text):
+    formats = ['%d-%m-%Y', '%d.%m.%Y', '%d/%m/%Y']
+    for fmt in formats:
+        try:
+            return datetime.strptime(date_text, fmt).date()
+        except ValueError:
+            continue
+    return None
+
+
 def step_birth_date(message, app_id):
     app = JobApplication.objects.get(id=app_id)
 
     try:
-        app.birth_date = message.text
+        app.birth_date = parse_date(message.text)
         app.save()
     except:
         bot.send_message(message.chat.id, "Noto‘g‘ri format!")
