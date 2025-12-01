@@ -197,7 +197,28 @@ def show_locations(call):
 
 @bot.callback_query_handler(func=lambda call: call.data == "back_cat")
 def back_to_categories(call):
-    send_job_categories(call.message)
+    kb = types.InlineKeyboardMarkup()
+    categories = list(JobCategory.objects.all())
+
+    row = []
+    for i, cat in enumerate(categories, start=1):
+        row.append(types.InlineKeyboardButton(
+            f"{cat.icon or ''} {cat.name}",
+            callback_data=f"cat_{cat.id}"
+        ))
+        if i % 2 == 0:
+            kb.row(*row)
+            row = []
+    if row:
+        kb.row(*row)
+
+    bot.edit_message_text(
+        "Bo‘limni tanlang:",
+        chat_id=call.message.chat.id,
+        message_id=call.message.message_id,
+        reply_markup=kb
+    )
+
 
 # ================================
 #  Step 3 — Create JobApplication
