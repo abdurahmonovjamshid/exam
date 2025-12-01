@@ -15,6 +15,11 @@ from .models import (
 
 bot = TeleBot(TELEGRAM_BOT_TOKEN, threaded=False)
 
+def back_button():
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    kb.row("⬅️ Ortga")
+    return kb
+
 
 @csrf_exempt
 def telegram_webhook(request):
@@ -114,12 +119,6 @@ def menu_router(message):
         return send_job_categories(message)
 
 
-# ================================
-#  PageContent dynamic loader
-# ================================
-# ================================
-#  PageContent dynamic loader (updated for rich text & links)
-# ================================
 def send_page_content(chat_id, key):
     try:
         page = PageContent.objects.get(key=key)
@@ -219,7 +218,7 @@ def start_application(call):
         phone_number="-",
     )
 
-    bot.send_message(call.message.chat.id, "Tug‘ilgan sana (YYYY-MM-DD):")
+    bot.send_message(call.message.chat.id, "Tug‘ilgan sana (YYYY-MM-DD):", reply_markup=back_button())
     bot.register_next_step_handler(call.message, step_birth_date, application.id)
 
 
@@ -238,6 +237,8 @@ def parse_date(date_text):
 
 
 def step_birth_date(message, app_id):
+    if message.text == "⬅️ Ortga":
+        return send_job_categories(message)  # go back
     app = JobApplication.objects.get(id=app_id)
 
     try:
@@ -247,20 +248,28 @@ def step_birth_date(message, app_id):
         bot.send_message(message.chat.id, "Noto‘g‘ri format!")
         return bot.register_next_step_handler(message, step_birth_date, app_id)
 
-    bot.send_message(message.chat.id, "Viloyat:")
+    bot.send_message(message.chat.id, "Viloyat:", reply_markup=back_button())
     bot.register_next_step_handler(message, step_region, app_id)
 
 
 def step_region(message, app_id):
+    if message.text == "⬅️ Ortga":
+        bot.send_message(message.chat.id, "Tug‘ilgan sana:", reply_markup=back_button())
+        return bot.register_next_step_handler(message, step_birth_date, app_id)
+
     app = JobApplication.objects.get(id=app_id)
     app.region = message.text
     app.save()
 
-    bot.send_message(message.chat.id, "Tuman:")
+    bot.send_message(message.chat.id, "Tuman:", reply_markup=back_button())
     bot.register_next_step_handler(message, step_district, app_id)
 
 
 def step_district(message, app_id):
+    if message.text == "⬅️ Ortga":
+        bot.send_message(message.chat.id, "Viloyat:", reply_markup=back_button())
+        return bot.register_next_step_handler(message, step_region, app_id)
+
     app = JobApplication.objects.get(id=app_id)
     app.district = message.text
     app.save()
@@ -298,6 +307,10 @@ def select_position(call):
 
 
 def step_prev_job(message, app_id):
+    if message.text == "⬅️ Ortga":
+        bot.send_message(message.chat.id, "Tuman:", reply_markup=back_button())
+        return bot.register_next_step_handler(message, step_district, app_id)
+
     app = JobApplication.objects.get(id=app_id)
     app.previous_job = message.text
     app.save()
@@ -307,6 +320,10 @@ def step_prev_job(message, app_id):
 
 
 def step_phone(message, app_id):
+    if message.text == "⬅️ Ortga":
+        bot.send_message(message.chat.id, "Oldingi ish joyi:", reply_markup=back_button())
+        return bot.register_next_step_handler(message, step_prev_job, app_id)
+
     kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
 
     # Fetch all menus
