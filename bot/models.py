@@ -61,6 +61,7 @@ class Position(models.Model):
 class JobApplication(models.Model):
     user = models.ForeignKey(TgUser, on_delete=models.CASCADE)
 
+    full_name = models.CharField(max_length=200, blank=True)  # store full name
     birth_date = models.DateField()
     region = models.CharField(max_length=100)
     district = models.CharField(max_length=100, blank=True, null=True)

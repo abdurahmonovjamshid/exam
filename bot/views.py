@@ -243,10 +243,24 @@ def start_application(call):
         birth_date="2000-01-01",
         region="",
         phone_number="-",
+        full_name=""
     )
 
-    bot.send_message(call.message.chat.id, "Tug‘ilgan sana (DD.MM.YYYY):", reply_markup=back_button())
-    bot.register_next_step_handler(call.message, step_birth_date, application.id)
+    # Ask full name
+    bot.send_message(call.message.chat.id, "To‘liq ismingizni kiriting:", reply_markup=back_button())
+    bot.register_next_step_handler(call.message, step_full_name, application.id)
+
+def step_full_name(message, app_id):
+    if message.text == "⬅️ Ortga":
+        JobApplication.objects.filter(id=app_id).delete()
+        return send_main_menu(message)
+
+    app = JobApplication.objects.get(id=app_id)
+    app.full_name = message.text.strip()
+    app.save()
+
+    bot.send_message(message.chat.id, "Tug‘ilgan sana (DD.MM.YYYY):", reply_markup=back_button())
+    bot.register_next_step_handler(message, step_birth_date, app_id)
 
 
 # ================================
@@ -262,15 +276,12 @@ def parse_date(date_text):
             continue
     return None
 
-
 def step_birth_date(message, app_id):
     if message.text == "⬅️ Ortga":
-        # delete unfinished application
-        JobApplication.objects.filter(id=app_id).delete()
-        return send_main_menu(message)  # FIX → goes to main menu
+        bot.send_message(message.chat.id, "To‘liq ismingizni kiriting:", reply_markup=back_button())
+        return bot.register_next_step_handler(message, step_full_name, app_id)
 
     app = JobApplication.objects.get(id=app_id)
-
     date_val = parse_date(message.text)
     if not date_val:
         bot.send_message(message.chat.id, "Noto‘g‘ri format!")
@@ -281,7 +292,6 @@ def step_birth_date(message, app_id):
 
     bot.send_message(message.chat.id, "Viloyat:", reply_markup=back_button())
     bot.register_next_step_handler(message, step_region, app_id)
-
 
 
 def step_region(message, app_id):
