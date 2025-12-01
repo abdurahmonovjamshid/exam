@@ -8,6 +8,8 @@ from .models import (
     JobApplication,
     PageContent
 )
+import openpyxl
+from django.http import HttpResponse
 
 
 # -----------------------
@@ -61,23 +63,54 @@ class PositionAdmin(admin.ModelAdmin):
 # -----------------------
 # JobApplication
 # -----------------------
+from django.contrib import admin
+from .models import JobApplication
+import openpyxl
+from django.http import HttpResponse
+
 @admin.register(JobApplication)
 class JobApplicationAdmin(admin.ModelAdmin):
-    list_display = (
-        "id",
-        "user",
-        "position",
-        "location",
-        "region",
-        "district",
-        "phone_number",
-        "birth_date",
-        "status",
-        "created_at",
-    )
+    # Dynamically display all fields
+    list_display = [field.name for field in JobApplication._meta.get_fields() if not field.many_to_many and not field.one_to_many]
 
     search_fields = ("user__first_name", "user__last_name", "phone_number")
     list_filter = ("status", "position", "location", "region")
+
+    actions = ["export_to_excel"]
+
+    def export_to_excel(self, request, queryset):
+        # Create workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        ws.title = "Job Applications"
+
+        # Dynamically get field names for header
+        fields = [field for field in JobApplication._meta.get_fields() if not field.many_to_many and not field.one_to_many]
+        headers = [field.name for field in fields]
+        ws.append(headers)
+
+        # Data rows
+        for app in queryset:
+            row = []
+            for field in fields:
+                value = getattr(app, field.name)
+                # For related fields, show string representation
+                if hasattr(value, "all"):
+                    value = ", ".join([str(i) for i in value.all()])
+                elif hasattr(value, "__str__") and field.is_relation:
+                    value = str(value) if value else ""
+                row.append(value)
+            ws.append(row)
+
+        # Prepare response
+        response = HttpResponse(
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        response["Content-Disposition"] = "attachment; filename=job_applications.xlsx"
+        wb.save(response)
+        return response
+
+    export_to_excel.short_description = "Export selected Job Applications to Excel"
 
 
 # -----------------------
