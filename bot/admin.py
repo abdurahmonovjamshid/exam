@@ -71,22 +71,19 @@ from django.http import HttpResponse
 
 @admin.register(JobApplication)
 class JobApplicationAdmin(admin.ModelAdmin):
-    # Show all fields dynamically
+    # Show all fields dynamically, including new comments field
     list_display = [
         field.name
         for field in JobApplication._meta.get_fields()
         if not field.many_to_many and not field.one_to_many
     ]
 
-    search_fields = ("user__first_name", "user__last_name", "phone_number")
+    search_fields = ("user__first_name", "user__last_name", "phone_number", "comments")
     list_filter = ("status", "position", "location", "region")
 
     actions = ["export_to_excel"]
 
     def export_to_excel(self, request, queryset):
-        """
-        Export selected JobApplications to Excel dynamically
-        """
         # Create workbook
         wb = openpyxl.Workbook()
         ws = wb.active
@@ -115,7 +112,7 @@ class JobApplicationAdmin(admin.ModelAdmin):
                 elif hasattr(value, "__str__") and field.is_relation:
                     value = str(value) if value else ""
 
-                # Convert timezone-aware datetimes to naive for Excel
+                # Convert timezone-aware datetimes to naive
                 if hasattr(value, "tzinfo") and value.tzinfo is not None:
                     value = localtime(value).replace(tzinfo=None)
 
