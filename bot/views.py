@@ -265,6 +265,8 @@ def parse_date(date_text):
 
 def step_birth_date(message, app_id):
     if message.text == "⬅️ Ortga":
+        # delete unfinished application
+        JobApplication.objects.filter(id=app_id).delete()
         return send_main_menu(message)  # FIX → goes to main menu
 
     app = JobApplication.objects.get(id=app_id)
