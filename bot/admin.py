@@ -10,6 +10,7 @@ from .models import (
 )
 import openpyxl
 from django.http import HttpResponse
+from django.utils.timezone import localtime
 
 
 # -----------------------
@@ -70,8 +71,12 @@ from django.http import HttpResponse
 
 @admin.register(JobApplication)
 class JobApplicationAdmin(admin.ModelAdmin):
-    # Dynamically display all fields
-    list_display = [field.name for field in JobApplication._meta.get_fields() if not field.many_to_many and not field.one_to_many]
+    # Show all fields dynamically
+    list_display = [
+        field.name
+        for field in JobApplication._meta.get_fields()
+        if not field.many_to_many and not field.one_to_many
+    ]
 
     search_fields = ("user__first_name", "user__last_name", "phone_number")
     list_filter = ("status", "position", "location", "region")
@@ -79,13 +84,22 @@ class JobApplicationAdmin(admin.ModelAdmin):
     actions = ["export_to_excel"]
 
     def export_to_excel(self, request, queryset):
+        """
+        Export selected JobApplications to Excel dynamically
+        """
         # Create workbook
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = "Job Applications"
 
-        # Dynamically get field names for header
-        fields = [field for field in JobApplication._meta.get_fields() if not field.many_to_many and not field.one_to_many]
+        # Get all non-many fields
+        fields = [
+            field
+            for field in JobApplication._meta.get_fields()
+            if not field.many_to_many and not field.one_to_many
+        ]
+
+        # Header row
         headers = [field.name for field in fields]
         ws.append(headers)
 
@@ -94,15 +108,21 @@ class JobApplicationAdmin(admin.ModelAdmin):
             row = []
             for field in fields:
                 value = getattr(app, field.name)
-                # For related fields, show string representation
+
+                # Convert related objects to string
                 if hasattr(value, "all"):
                     value = ", ".join([str(i) for i in value.all()])
                 elif hasattr(value, "__str__") and field.is_relation:
                     value = str(value) if value else ""
+
+                # Convert timezone-aware datetimes to naive for Excel
+                if hasattr(value, "tzinfo") and value.tzinfo is not None:
+                    value = localtime(value).replace(tzinfo=None)
+
                 row.append(value)
             ws.append(row)
 
-        # Prepare response
+        # Prepare HTTP response
         response = HttpResponse(
             content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
         )
@@ -111,8 +131,6 @@ class JobApplicationAdmin(admin.ModelAdmin):
         return response
 
     export_to_excel.short_description = "Export selected Job Applications to Excel"
-
-
 # -----------------------
 # PageContent
 # -----------------------
