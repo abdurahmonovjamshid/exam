@@ -245,7 +245,7 @@ def start_application(call):
         phone_number="-",
     )
 
-    bot.send_message(call.message.chat.id, "Tug‘ilgan sana (YYYY-MM-DD):", reply_markup=back_button())
+    bot.send_message(call.message.chat.id, "Tug‘ilgan sana (DD.MM.YYYY):", reply_markup=back_button())
     bot.register_next_step_handler(call.message, step_birth_date, application.id)
 
 
