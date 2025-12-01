@@ -185,6 +185,9 @@ def show_locations(call):
     if row:
         kb.row(*row)
 
+    # ⬅️ ADD INLINE BACK BUTTON
+    kb.row(types.InlineKeyboardButton("⬅️ Ortga", callback_data=f"back_cat"))
+
     bot.edit_message_text(
         "Joyni tanlang:",
         call.message.chat.id,
@@ -192,6 +195,9 @@ def show_locations(call):
         reply_markup=kb
     )
 
+@bot.callback_query_handler(func=lambda call: call.data == "back_cat")
+def back_to_categories(call):
+    send_job_categories(call.message)
 
 # ================================
 #  Step 3 — Create JobApplication
