@@ -63,11 +63,7 @@ class PositionAdmin(admin.ModelAdmin):
 
 # -----------------------
 # JobApplication
-# -----------------------
-from django.contrib import admin
-from .models import JobApplication
-import openpyxl
-from django.http import HttpResponse
+# ----------------------
 
 @admin.register(JobApplication)
 class JobApplicationAdmin(admin.ModelAdmin):
