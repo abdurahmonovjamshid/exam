@@ -75,12 +75,20 @@ class JobApplication(models.Model):
 
     status = models.CharField(
         max_length=20,
-        choices=[("new", "New"), ("review", "In Review"), ("accepted", "Accepted"), ("rejected", "Rejected")],
+        choices=[
+            ("new", "New"),
+            ("review", "In Review"),
+            ("accepted", "Accepted"),
+            ("rejected", "Rejected")
+        ],
         default="new"
     )
 
+    comments = models.TextField(blank=True, null=True)  # <--- NEW FIELD
+
     def __str__(self):
         return f"{self.user.full_name} – {self.position}"
+
 
 
 class PageContent(models.Model):
